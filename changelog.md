@@ -1,3 +1,7 @@
+# v1.0.4 
+- Bumped Geode loader support to `v5.9.0`
+- Minor optimizations
+
 # v1.0.3 
 - Optimized internal Forgejo caching
 

@@ -6,7 +6,7 @@
 ---
 
 ## About
-This mod adds preview images to Geode mods' information pop-ups if their developer included them!
+This mod adds preview images to Geode mods' information pop-ups, *if their developer included them*!
 
 ---
 

@@ -12,6 +12,7 @@
 #include <Geode/utils/web.hpp>
 
 using namespace geode::prelude;
+using namespace cw::previews;
 
 namespace cw {
     static utils::StringSet& forgejo() noexcept {

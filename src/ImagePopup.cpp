@@ -5,6 +5,7 @@
 #include <Geode/Geode.hpp>
 
 using namespace geode::prelude;
+using namespace cw::previews;
 
 bool ImagePopup::init(uint8_t page, uint8_t size, std::string url) {
     m_page = page;
@@ -15,34 +16,27 @@ bool ImagePopup::init(uint8_t page, uint8_t size, std::string url) {
 
     if (!Popup::init(380.f, 250.f, geodeTheme ? "geode.loader/GE_square01.png" : "GJ_square01.png")) return false;
 
-    auto prevArrow = CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png");
-    auto prevButton = CCMenuItemSpriteExtra::create(prevArrow, this, menu_selector(ImagePopup::onPrev));
+    setTitle("Preview");
+    setCloseButtonSpr(CircleButtonSprite::createWithSpriteFrameName("geode.loader/close.png", .85f, (geodeTheme ? CircleBaseColor::DarkPurple : CircleBaseColor::Green)));
 
-    prevButton->setPosition({-20, m_buttonMenu->getContentHeight() / 2});
+    auto prevButton = CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png"), this, menu_selector(ImagePopup::onPrev));
+    prevButton->setPosition({-20.f, m_buttonMenu->getContentHeight() / 2});
 
     auto nextArrow = CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png");
     nextArrow->setFlipX(true);
 
     auto nextButton = CCMenuItemSpriteExtra::create(nextArrow, this, menu_selector(ImagePopup::onNext));
+    nextButton->setPosition({m_buttonMenu->getContentWidth() + 20.f, m_buttonMenu->getContentHeight() / 2.f});
 
-    nextButton->setPosition({m_buttonMenu->getContentWidth() + 20, m_buttonMenu->getContentHeight() / 2});
+    m_buttonMenu->addChild(prevButton, 1);
+    m_buttonMenu->addChild(nextButton, 1);
 
-    m_buttonMenu->addChild(prevButton);
-    m_buttonMenu->addChild(nextButton);
-
-    m_imageCount = CCLabelBMFont::create(fmt::format("Image {}/{}", m_page, m_size).c_str(), "goldFont.fnt");
-
+    m_imageCount = Label::create(fmt::format("Image {}/{}", m_page, m_size), "goldFont.fnt");
     m_imageCount->setAnchorPoint({1, 1});
     m_imageCount->setScale(0.4f);
-    m_imageCount->setPosition({m_mainLayer->getContentWidth() - 8, m_mainLayer->getContentHeight() - 8});
+    m_imageCount->setPosition({m_mainLayer->getContentWidth() - 8.f, m_mainLayer->getContentHeight() - 8.f});
 
     m_mainLayer->addChild(m_imageCount);
-
-    setTitle("Preview");
-
-    setCloseButtonSpr(
-        CircleButtonSprite::createWithSpriteFrameName(
-            "geode.loader/close.png", .85f, (geodeTheme ? CircleBaseColor::DarkPurple : CircleBaseColor::Green)));
 
     showImage(page);
 
@@ -60,7 +54,7 @@ void ImagePopup::showImage(uint8_t page) {
         spr = sprite;
         onLoad(spr);
     } else {
-        spr = LazySprite::create({100, 50});
+        spr = LazySprite::create({100.f, 50.f});
         m_sprites[page] = spr;
 
         spr->setLoadCallback([this, spr](Result<> res) {
@@ -79,7 +73,7 @@ void ImagePopup::onLoad(LazySprite* spr) {
     auto maxWidth = 340.f;
     auto maxHeight = 210.f;
 
-    CCSize originalSize = spr->getContentSize();
+    auto const originalSize = spr->getContentSize();
 
     auto scaleX = maxWidth / originalSize.width;
     auto scaleY = maxHeight / originalSize.height;
@@ -87,12 +81,12 @@ void ImagePopup::onLoad(LazySprite* spr) {
     auto scale = std::min(scaleX, scaleY);
 
     spr->setScale(scale);
-    spr->setPosition(m_mainLayer->getContentSize() / 2);
-    spr->setPositionY(spr->getPositionY() - 10);
+    spr->setPosition(m_mainLayer->getContentSize() / 2.f);
+    spr->setPositionY(spr->getPositionY() - 10.f);
 
-    auto imageSize = spr->getScaledContentSize() + CCSize{6, 6};
+    auto imageSize = spr->getScaledContentSize() + CCSize{6.f, 6.f};
 
-    m_imageCount->setString(fmt::format("Image {}/{}", m_page, m_size).c_str());
+    m_imageCount->setText(fmt::format("Image {}/{}", m_page, m_size));
 };
 
 void ImagePopup::onPrev(CCObject* sender) {

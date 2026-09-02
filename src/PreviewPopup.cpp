@@ -1,4 +1,4 @@
-#include "ImagePopup.h"
+#include "PreviewPopup.h"
 
 #include "Macros.h"
 
@@ -7,7 +7,7 @@
 using namespace geode::prelude;
 using namespace cw::previews;
 
-bool ImagePopup::init(uint8_t page, uint8_t size, std::string url) {
+bool PreviewPopup::init(uint8_t page, uint8_t size, std::string url) {
     m_page = page;
     m_size = size;
     m_url = std::move(url);
@@ -19,31 +19,39 @@ bool ImagePopup::init(uint8_t page, uint8_t size, std::string url) {
     setTitle("Preview");
     setCloseButtonSpr(CircleButtonSprite::createWithSpriteFrameName("geode.loader/close.png", .85f, (geodeTheme ? CircleBaseColor::DarkPurple : CircleBaseColor::Green)));
 
-    auto prevButton = CCMenuItemSpriteExtra::create(CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png"), this, menu_selector(ImagePopup::onPrev));
-    prevButton->setPosition({-20.f, m_buttonMenu->getContentHeight() / 2});
+    auto prevBtn = CCMenuItemSpriteExtra::create(
+        CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png"),
+        this,
+        menu_selector(PreviewPopup::onPrev));
+    prevBtn->setID("previous-btn");
+    prevBtn->setPosition({-20.f, m_buttonMenu->getContentHeight() / 2});
 
     auto nextArrow = CCSprite::createWithSpriteFrameName("GJ_arrow_02_001.png");
     nextArrow->setFlipX(true);
 
-    auto nextButton = CCMenuItemSpriteExtra::create(nextArrow, this, menu_selector(ImagePopup::onNext));
-    nextButton->setPosition({m_buttonMenu->getContentWidth() + 20.f, m_buttonMenu->getContentHeight() / 2.f});
+    auto nextBtn = CCMenuItemSpriteExtra::create(
+        nextArrow,
+        this,
+        menu_selector(PreviewPopup::onNext));
+    nextBtn->setID("next-btn");
+    nextBtn->setPosition({m_buttonMenu->getContentWidth() + 20.f, m_buttonMenu->getContentHeight() / 2.f});
 
-    m_buttonMenu->addChild(prevButton, 1);
-    m_buttonMenu->addChild(nextButton, 1);
+    m_buttonMenu->addChild(prevBtn, 1);
+    m_buttonMenu->addChild(nextBtn, 1);
 
     m_imageCount = Label::create(fmt::format("Image {}/{}", m_page, m_size), "goldFont.fnt");
+    m_imageCount->setScale(0.425f);
     m_imageCount->setAnchorPoint({1, 1});
-    m_imageCount->setScale(0.4f);
-    m_imageCount->setPosition({m_mainLayer->getContentWidth() - 8.f, m_mainLayer->getContentHeight() - 8.f});
+    m_imageCount->setAlignment(Label::Alignment::Right);
 
-    m_mainLayer->addChild(m_imageCount);
+    m_mainLayer->addChildAtPosition(m_imageCount, Anchor::TopRight, {-7.5f, -7.5f}, false);
 
     showImage(page);
 
     return true;
 };
 
-void ImagePopup::showImage(uint8_t page) {
+void PreviewPopup::showImage(uint8_t page) {
     if (m_currentImage) m_currentImage->removeFromParent();
 
     std::string previewURL = fmt::format("{}{}.png", m_url, page);
@@ -69,7 +77,7 @@ void ImagePopup::showImage(uint8_t page) {
     m_mainLayer->addChild(spr);
 };
 
-void ImagePopup::onLoad(LazySprite* spr) {
+void PreviewPopup::onLoad(LazySprite* spr) {
     auto maxWidth = 340.f;
     auto maxHeight = 210.f;
 
@@ -89,22 +97,22 @@ void ImagePopup::onLoad(LazySprite* spr) {
     m_imageCount->setText(fmt::format("Image {}/{}", m_page, m_size));
 };
 
-void ImagePopup::onPrev(CCObject* sender) {
+void PreviewPopup::onPrev(CCObject* sender) {
     m_page--;
     if (m_page < 1) m_page = m_size;
 
     showImage(m_page);
 };
 
-void ImagePopup::onNext(CCObject* sender) {
+void PreviewPopup::onNext(CCObject* sender) {
     m_page++;
     if (m_page > m_size) m_page = 1;
 
     showImage(m_page);
 };
 
-ImagePopup* ImagePopup::create(uint8_t page, uint8_t size, std::string url) {
-    auto ret = new ImagePopup();
+PreviewPopup* PreviewPopup::create(uint8_t page, uint8_t size, std::string url) {
+    auto ret = new PreviewPopup();
     if (ret->init(page, size, std::move(url))) {
         ret->autorelease();
         return ret;

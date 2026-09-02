@@ -1,6 +1,6 @@
 // original mod by alphalaneous
 // source inherited & now maintained by me !!!
-#include "ImagePopup.h"
+#include "PreviewPopup.h"
 
 #include "Macros.h"
 
@@ -360,7 +360,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
     void showPopup(int page) {
         auto f = m_fields.self();
 
-        auto popup = ImagePopup::create(page, f->previewSprites.size(), f->url);
+        auto popup = PreviewPopup::create(page, f->previewSprites.size(), f->url);
         popup->show();
     };
 

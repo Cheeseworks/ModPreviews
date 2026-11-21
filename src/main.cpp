@@ -1,11 +1,11 @@
 // original mod by alphalaneous
 // source inherited & now maintained by me !!!
-#include "PreviewPopup.h"
+#include <cw.h>
 
-#include "Macros.h"
+#include <rhatt/prelude.h>
 
-#include "alphalaneous.alphas_geode_utils/include/Utils.hpp"
-#include "alphalaneous.alphas_geode_utils/include/ObjectModify.hpp"
+#include <alphalaneous.alphas_geode_utils/Utils.hpp>
+#include <alphalaneous.alphas_geode_utils/ObjectModify.hpp>
 
 #include <Geode/Geode.hpp>
 
@@ -14,10 +14,12 @@
 using namespace geode::prelude;
 using namespace cw::previews;
 
-namespace cw {
-    static utils::StringSet& forgejo() noexcept {
-        static utils::StringSet inst;
-        return inst;
+namespace cw::previews {
+    namespace main {
+        static utils::StringSet& forgejo() noexcept {
+            static utils::StringSet inst;
+            return inst;
+        }
     };
 };
 
@@ -30,18 +32,18 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
     struct Fields final {
         utils::StringMap<async::TaskHolder<web::WebResponse>> listeners;
 
-        std::unordered_map<uint8_t, Ref<CCSprite>> previewSprites;
+        std::unordered_map<uint8_t, Ref<cw::WebSprite>> previewSprites;
         std::map<uint8_t, Ref<Button>> previewButtons;
 
-        Ref<CCNode> imagesContainer;
-        std::vector<Ref<LazySprite>> sprites;
+        Ref<CCNode> imagesContainer = nullptr;
+        std::vector<Ref<cw::WebSprite>> sprites;
 
-        CCNode* imagesList;
-        CCNode* showAllMenu;
+        CCNode* imagesList = nullptr;
+        CCNode* showAllMenu = nullptr;
 
-        bool hasShownImages;
-        bool isShowingDescription;
-        bool isShowingABanner;
+        bool hasShownImages = false;
+        bool isShowingDescription = false;
+        bool isShowingABanner = false;
 
         std::string url;
     };
@@ -50,10 +52,10 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
     bool isSafe() {
         if (auto githubBtn = getChildByIDRecursive("github")) {
             if (auto self = reinterpret_cast<FLAlertLayer*>(this)) {
-                std::optional<CCNode*> firstNodeOpt = alpha::utils::cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
+                auto firstNodeOpt = alpha::utils::cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
                 if (!firstNodeOpt.has_value()) return false;
 
-                if (CCString* url = static_cast<CCString*>(githubBtn->getUserObject("url"))) {
+                if (auto url = static_cast<CCString*>(githubBtn->getUserObject("url"))) {
                     std::string githubURL = url->getCString();
                     if (githubURL.empty()) return false;
                 } else {
@@ -67,26 +69,27 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
                 auto base = geodeTheme ? CircleBaseColor::DarkPurple : CircleBaseColor::Green;
 
-                if (base == CircleBaseColor::DarkPurple && !CCSprite::createWithSpriteFrameName("geode.loader/baseCircle_Medium_DarkPurple.png")) return false;
-                if (base == CircleBaseColor::Green && !CCSprite::createWithSpriteFrameName("geode.loader/baseCircle_Medium_Green.png")) return false;
+                if (base == CircleBaseColor::DarkPurple && !CCSprite::createWithSpriteFrameName("baseCircle_Medium_DarkPurple.png"_gode)) return false;
+                if (base == CircleBaseColor::Green && !CCSprite::createWithSpriteFrameName("baseCircle_Medium_Green.png"_gode)) return false;
 
                 return true;
             };
         };
 
         return false;
-    };
+    }
 
-    void checkIfMain(std::string url, CopyableFunction<void(bool)>&& callback) {
+    void checkIfMain(ZStringView url, CopyableFunction<void(bool)>&& callback) {
         auto f = m_fields.self();
-        auto req = web::WebRequest();
+        auto req = cw::request::base();
 
         f->listeners[url].spawn(
             req.get(url),
             [this, callback = std::move(callback)](web::WebResponse resp) {
                 callback(resp.ok());
-            });
-    };
+            }
+        );
+    }
 
     void modify() {
         if (!isSafe()) return;
@@ -97,23 +100,23 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
         f->imagesList = CCNode::create();
         f->imagesList->setZOrder(1);
-        f->imagesList->setContentSize({262, 54});
-        f->imagesList->setAnchorPoint({0.5, 0.5});
+        f->imagesList->setContentSize({ 262.0f, 54.0f });
+        f->imagesList->setAnchorPoint(cw::anchor::center);
         f->imagesList->ignoreAnchorPointForPosition(false);
 
         f->imagesContainer = CCNode::create();
         f->imagesContainer->setID("images-container"_spr);
         f->imagesContainer->setVisible(false);
-        f->imagesContainer->setContentSize({267.5, 59});
-        f->imagesContainer->setPosition({152.5, 0});
-        f->imagesContainer->setAnchorPoint({0, 0});
+        f->imagesContainer->setContentSize({ 267.5f, 59.0f });
+        f->imagesContainer->setPosition({ 152.5f, 0.0f });
+        f->imagesContainer->setAnchorPoint({ 0.0f, 0.0f });
         f->imagesContainer->addChild(f->imagesList);
 
         f->showAllMenu = CCNode::create();
-        f->showAllMenu->setContentSize({20, 54});
-        f->showAllMenu->setPosition({f->imagesContainer->getContentWidth() - 2.5f, f->imagesContainer->getContentHeight() / 2});
+        f->showAllMenu->setContentSize({ 20.0f, 54.0f });
+        f->showAllMenu->setPosition({ f->imagesContainer->getContentWidth() - 2.5f, f->imagesContainer->getContentHeight() / 2 });
         f->showAllMenu->ignoreAnchorPointForPosition(false);
-        f->showAllMenu->setAnchorPoint({1, 0.5});
+        f->showAllMenu->setAnchorPoint({ 1.0f, 0.5f });
         f->showAllMenu->setZOrder(2);
         f->showAllMenu->setVisible(false);
 
@@ -121,25 +124,26 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
         auto moreSpr = CircleButtonSprite::createWithSpriteFrameName(
             "edit_addCBtn_001.png",
-            .85f,
-            (geodeTheme ? CircleBaseColor::DarkPurple : CircleBaseColor::Green));
+            0.85f,
+            (geodeTheme ? CircleBaseColor::DarkPurple : CircleBaseColor::Green)
+        );
 
         auto showAllBtn = Button::createWithNode(moreSpr, [this](Button* sender) { showPopup(sender->getTag()); });
-        showAllBtn->setPosition(f->showAllMenu->getContentSize() / 2);
+        showAllBtn->setPosition(f->showAllMenu->getContentSize() / 2.0f);
         showAllBtn->setScale(0.4f);
         showAllBtn->setTag(1);
 
         f->showAllMenu->addChild(showAllBtn);
         f->imagesContainer->addChild(f->showAllMenu);
 
-        f->imagesList->setPosition(f->imagesContainer->getContentSize() / 2);
+        f->imagesList->setPosition(f->imagesContainer->getContentSize() / 2.0f);
 
         auto background = NineSlice::create("square02b_001.png");
-        background->setContentSize(f->imagesContainer->getContentSize() / 0.5);
-        background->setScale(0.5);
+        background->setContentSize(f->imagesContainer->getContentSize() / 0.5f);
+        background->setScale(0.5f);
         background->setOpacity(75);
-        background->setColor({0, 0, 0});
-        background->setPosition(f->imagesContainer->getContentSize() / 2);
+        background->setColor({ 0, 0, 0 });
+        background->setPosition(f->imagesContainer->getContentSize() / 2.0f);
 
         f->imagesContainer->addChild(background);
 
@@ -160,11 +164,11 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
             auto data = std::move(dataRes).unwrap();
 
-            auto modJsonUrl = fmt::format("{}/main/mod.json", data.rawURL);
+            auto const modJsonUrl = fmt::format("{}/main/mod.json", data.rawURL);
 
             checkIfMain(modJsonUrl, [self = WeakRef(this), data](bool main) {
                 if (auto s = self.lock()) {
-                    std::string mainBranch = "main";
+                    std::string mainBranch{"main"};
                     if (!main) mainBranch = "master";
 
                     auto f = s->m_fields.self();
@@ -174,20 +178,18 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                     for (uint8_t i = 1; i <= 10; i++) {
                         std::string previewURL = fmt::format("{}{}.png", f->url, i);
 
-                        auto spr = LazySprite::create({100.f, 50.f});
+                        auto spr = cw::WebSprite::create({100.0f, 50.0f});
                         f->sprites.push_back(spr);
 
-                        spr->setLoadCallback([s, i, spr](Result<> res) {
+                        spr->load(previewURL, [s, i, spr](cw::WebSprite::LoadResult res) {
                             if (res.isOk()) s->onImageDownloadFinish(i, spr);
                         });
-
-                        spr->loadFromUrl(previewURL);
                     };
                 };
             }); });
-    };
+    }
 
-    void getRepoData(const std::string& url, CopyableFunction<void(Result<RepoData>)>&& callback) {
+    void getRepoData(ZStringView url, CopyableFunction<void(Result<RepoData>)>&& callback) {
         auto split = utils::string::split(url, "://");
         if (split.size() < 2) {
             callback(Err("Invalid HTTPS URL"));
@@ -195,7 +197,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         };
 
         auto& postURL = split[1];
-        std::string prefixWWW = "www.";
+        std::string prefixWWW{ "www." };
 
         if (postURL.starts_with(prefixWWW)) postURL.erase(0, prefixWWW.size());
 
@@ -208,22 +210,24 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         auto& platformURL = splitSlash[0];
         auto repo = postURL.substr(platformURL.size() + 1);
 
-        std::string rawURL = "";
+        std::string rawURL;
 
         if (platformURL == "github.com") rawURL = fmt::format("https://raw.githubusercontent.com/{}", repo);
         if (platformURL == "gitlab.com") rawURL = fmt::format("https://gitlab.com/{}/-/raw", repo);
-        if (platformURL == "codeberg.org") rawURL = fmt::format("https://codeberg.org/{}/raw/branch", repo);
+        if (platformURL == "codeberg.org") rawURL = fmt::format("https://codeberg.org/{}/raw/branch", repo);  // already known, hardcoded for faster fetching
 
-        if (auto it = cw::forgejo().find(platformURL); it != cw::forgejo().end()) rawURL = fmt::format("https://{}/{}/raw/branch", platformURL, repo);
+        if (auto it = main::forgejo().find(platformURL); it != main::forgejo().end()) rawURL = fmt::format("https://{}/{}/raw/branch", platformURL, repo);
 
         if (!rawURL.empty()) return callback(
             Ok(
                 RepoData{
                     .rawURL = rawURL,
                     .repo = repo,
-                }));
+                }
+            )
+        );
 
-        auto req = web::WebRequest();
+        auto req = cw::request::base();
 
         auto fullBaseURL = fmt::format("https://{}/api/v1/version", platformURL);
         log::trace("Sending request to {} to check Git instance version", fullBaseURL);
@@ -248,19 +252,22 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                     auto raw = fmt::format("https://{}/{}/raw/branch", platformURL, repo);
                     log::info("Detected Forgejo instance at {}, using {}", platformURL, raw);
 
-                    cw::forgejo().insert(platformURL);
+                    main::forgejo().insert(platformURL);
 
                     return callback(
                         Ok(
                             RepoData{
                                 .rawURL = raw,
                                 .repo = repo,
-                            }));
+                            }
+                        )
+                    );
                 };
 
                 callback(Err(fmt::format("Unsupported platform for URL: {}", fullBaseURL)));
-            });
-    };
+            }
+        );
+    }
 
     void resizeForBanner(CCNode* banner) {
         auto f = m_fields.self();
@@ -269,7 +276,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         resizeDescription(description);
 
         f->imagesContainer->setPositionY(30);
-    };
+    }
 
     void resizeDescription(CCNode* description) {
         auto f = m_fields.self();
@@ -287,12 +294,12 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
         if (auto textArea = static_cast<MDTextArea*>(description->getChildByID("textarea"))) {
             textArea->setContentHeight(description->getContentHeight());
-            textArea->setAnchorPoint({0.5, 0});
+            textArea->setAnchorPoint({ 0.5, 0 });
             textArea->setPositionY(0);
 
             if (auto background = textArea->getChildByType<NineSlice*>(0)) {
                 background->setContentHeight(description->getContentHeight() / background->getScale());
-                background->setAnchorPoint({0.5, 0});
+                background->setAnchorPoint({ 0.5, 0 });
                 background->setPositionY(0);
             };
 
@@ -301,7 +308,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                 scrollLayer->scrollToTop();
             };
         };
-    };
+    }
 
     void listenForDescription(float dt) {
         auto f = m_fields.self();
@@ -320,7 +327,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
             f->isShowingDescription = false;
         };
-    };
+    }
 
     void listenForBanner(float dt) {
         auto f = m_fields.self();
@@ -331,7 +338,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
             resizeForBanner(modtoberBanner);
             unschedule(schedule_selector(PreviewsModPopup::listenForBanner));
         };
-    };
+    }
 
     CCSprite* createSprite(CCImage* img) {
         auto texture = new CCTexture2D();
@@ -341,7 +348,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         texture->release();
 
         return spr;
-    };
+    }
 
     void showImages() {
         if (auto self = reinterpret_cast<FLAlertLayer*>(this)) {
@@ -355,19 +362,19 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
             schedule(schedule_selector(PreviewsModPopup::listenForDescription));
             schedule(schedule_selector(PreviewsModPopup::listenForBanner));
         };
-    };
+    }
 
-    void showPopup(int page) {
+    void showPopup(uint8_t page) {
         auto f = m_fields.self();
 
         auto popup = PreviewPopup::create(page, f->previewSprites.size(), f->url);
         popup->show();
-    };
+    }
 
-    void onImageDownloadFinish(uint8_t id, CCSprite* spr) {
+    void onImageDownloadFinish(uint8_t id, cw::WebSprite* spr) {
         auto f = m_fields.self();
 
-        auto scale = 54.f / spr->getContentHeight();
+        auto scale = 54.0f / spr->getContentHeight();
         spr->setScale(scale);
 
         auto btn = Button::createWithNode(spr, [this](Button* sender) { showPopup(sender->getTag()); });
@@ -388,7 +395,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         f->imagesList->removeAllChildren();
 
         auto gap = 2.5f;
-        auto totalWidth = 0.f;
+        auto totalWidth = 0.0f;
 
         Button* lastButton = nullptr;
 
@@ -396,7 +403,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
             if (lastButton) {
                 auto pos = lastButton->getPositionX() + lastButton->getContentWidth();
 
-                if (pos + v->getContentWidth() >= 262.f) {
+                if (pos + v->getContentWidth() >= 262.0f) {
                     f->showAllMenu->setVisible(true);
                     break;
                 };
@@ -415,5 +422,5 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         f->imagesList->setContentWidth(totalWidth);
 
         if (f->showAllMenu->isVisible()) f->imagesList->setPositionX((f->imagesContainer->getContentWidth() - f->showAllMenu->getContentWidth()) / 2);
-    };
+    }
 };

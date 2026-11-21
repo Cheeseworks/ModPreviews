@@ -128,10 +128,9 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
             (geodeTheme ? CircleBaseColor::DarkPurple : CircleBaseColor::Green)
         );
 
-        auto showAllBtn = Button::createWithNode(moreSpr, [this](Button* sender) { showPopup(sender->getTag()); });
+        auto showAllBtn = Button::createWithNode(moreSpr, [this](auto) { showPopup(1); });
         showAllBtn->setPosition(f->showAllMenu->getContentSize() / 2.0f);
         showAllBtn->setScale(0.4f);
-        showAllBtn->setTag(1);
 
         f->showAllMenu->addChild(showAllBtn);
         f->imagesContainer->addChild(f->showAllMenu);
@@ -377,8 +376,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         auto scale = 54.0f / spr->getContentHeight();
         spr->setScale(scale);
 
-        auto btn = Button::createWithNode(spr, [this](Button* sender) { showPopup(sender->getTag()); });
-        btn->setTag(id);
+        auto btn = Button::createWithNode(spr, [this, id](auto) { showPopup(id); });
         btn->ignoreAnchorPointForPosition(true);
         btn->setScaleMultiplier(1.1f);
 

@@ -38,20 +38,26 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         Ref<CCNode> imagesContainer = nullptr;
         std::vector<Ref<cw::WebSprite>> sprites;
 
-        CCNode* imagesList = nullptr;
-        CCNode* showAllMenu = nullptr;
+        Ref<CCNode> imagesList = nullptr;
+        Ref<CCNode> showAllMenu = nullptr;
 
         bool hasShownImages = false;
         bool isShowingDescription = false;
         bool isShowingABanner = false;
+
+        TaskHolder<web::WebResponse> urlTask;
 
         std::string url;
     };
 
     // as per fod's request, check everything and return to prevent side effects
     bool isSafe() {
-        if (auto githubBtn = getChildByIDRecursive("github")) {
-            if (auto self = reinterpret_cast<FLAlertLayer*>(this)) {
+#ifdef CW_TESTING
+        log::trace("Checking if popup is safe to modify");
+#endif
+
+        if (auto self = reinterpret_cast<FLAlertLayer*>(this)) {
+            if (auto githubBtn = self->m_mainLayer->getChildByIDRecursive("github")) {
                 auto firstNodeOpt = alpha::utils::cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
                 if (!firstNodeOpt.has_value()) return false;
 
@@ -59,28 +65,39 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                     std::string githubURL = url->getCString();
                     if (githubURL.empty()) return false;
                 } else {
+                    log::warn("Repository URL is missing");
                     return false;
                 };
 
                 //check if sprites exist ig
                 if (!CCSprite::createWithSpriteFrameName("edit_addCBtn_001.png")) return false;
 
-                IS_GEODE_THEME(auto geodeTheme);
+                CW_IS_GEODE_THEME(auto geodeTheme);
 
                 auto base = geodeTheme ? CircleBaseColor::DarkPurple : CircleBaseColor::Green;
 
                 if (base == CircleBaseColor::DarkPurple && !CCSprite::createWithSpriteFrameName("baseCircle_Medium_DarkPurple.png"_gode)) return false;
                 if (base == CircleBaseColor::Green && !CCSprite::createWithSpriteFrameName("baseCircle_Medium_Green.png"_gode)) return false;
 
+#ifdef CW_TESTING
+                log::debug("Popup is safe to modify, yay!!!");
+#endif
                 return true;
+            } else {
+                log::warn("GitHub button is missing");
             };
+        } else {
+            log::warn("Popup is not derived from FLAlertLayer");
         };
 
+        log::warn("Popup is not safe to modify");
         return false;
     }
 
     void checkIfMain(ZStringView url, CopyableFunction<void(bool)>&& callback) {
         auto f = m_fields.self();
+        dbgFields("checkIfMain");
+
         auto req = cw::request::base();
 
         f->listeners[url].spawn(
@@ -92,17 +109,12 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
     }
 
     void modify() {
+        auto f = m_fields.self();
+        log::debug("{} fields: {}", "first modify!!!", (void*)f);
+
         if (!isSafe()) return;
 
         auto githubBtn = getChildByIDRecursive("github");
-
-        auto f = m_fields.self();
-
-        f->imagesList = CCNode::create();
-        f->imagesList->setZOrder(1);
-        f->imagesList->setContentSize({ 262.0f, 54.0f });
-        f->imagesList->setAnchorPoint(cw::anchor::center);
-        f->imagesList->ignoreAnchorPointForPosition(false);
 
         f->imagesContainer = CCNode::create();
         f->imagesContainer->setID("images-container"_spr);
@@ -110,17 +122,24 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         f->imagesContainer->setContentSize({ 267.5f, 59.0f });
         f->imagesContainer->setPosition({ 152.5f, 0.0f });
         f->imagesContainer->setAnchorPoint({ 0.0f, 0.0f });
+
+        f->imagesList = CCNode::create();
+        f->imagesList->setZOrder(1);
+        f->imagesList->setContentSize({ 262.0f, 54.0f });
+        f->imagesList->setAnchorPoint(cw::anchor::center);
+        f->imagesList->ignoreAnchorPointForPosition(false);
+
         f->imagesContainer->addChild(f->imagesList);
 
         f->showAllMenu = CCNode::create();
         f->showAllMenu->setContentSize({ 20.0f, 54.0f });
-        f->showAllMenu->setPosition({ f->imagesContainer->getContentWidth() - 2.5f, f->imagesContainer->getContentHeight() / 2 });
+        f->showAllMenu->setPosition({ f->imagesContainer->getContentWidth() - 2.5f, f->imagesContainer->getContentHeight() / 2.0f });
         f->showAllMenu->ignoreAnchorPointForPosition(false);
         f->showAllMenu->setAnchorPoint({ 1.0f, 0.5f });
         f->showAllMenu->setZOrder(2);
         f->showAllMenu->setVisible(false);
 
-        IS_GEODE_THEME(auto geodeTheme);
+        CW_IS_GEODE_THEME(auto geodeTheme);
 
         auto moreSpr = CircleButtonSprite::createWithSpriteFrameName(
             "edit_addCBtn_001.png",
@@ -146,6 +165,17 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
         f->imagesContainer->addChild(background);
 
+        dbgFields("modify");
+
+#ifdef CW_TESTING
+        log::debug(
+            "Initialized preview UI for popup {} with fields {} (container {})",
+            fmt::ptr(this),
+            fmt::ptr(f),
+            f->imagesContainer ? "set" : "null"
+        );
+#endif
+
         auto url = static_cast<CCString*>(githubBtn->getUserObject("url"));
 
         std::string sourceURL = url->getCString();
@@ -159,36 +189,42 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                 return;
             };
 
+#ifdef CW_TESTING
             log::debug("Retrieved repository data for {}", sourceURL);
+#endif
 
             auto data = std::move(dataRes).unwrap();
 
             auto const modJsonUrl = fmt::format("{}/main/mod.json", data.rawURL);
 
-            checkIfMain(modJsonUrl, [self = WeakRef(this), data](bool main) {
-                if (auto s = self.lock()) {
-                    std::string mainBranch{"main"};
-                    if (!main) mainBranch = "master";
+            checkIfMain(modJsonUrl, [this, data](bool main) {
+                std::string mainBranch{ "main" };
+                if (!main) mainBranch = "master";
 
-                    auto f = s->m_fields.self();
+                auto f = m_fields.self();
+                dbgFields("modify -> checkIfMain callback");
 
-                    f->url = fmt::format("{}/{}/previews/preview-", data.rawURL, mainBranch);
+                f->url = fmt::format("{}/{}/previews/preview-", data.rawURL, mainBranch);
 
-                    for (uint8_t i = 1; i <= 10; i++) {
-                        std::string previewURL = fmt::format("{}{}.png", f->url, i);
+                for (uint8_t i = 1; i <= 10; i++) {
+                    auto previewURL = fmt::format("{}{}.png", f->url, i);
 
-                        auto spr = cw::WebSprite::create({100.0f, 50.0f});
-                        f->sprites.push_back(spr);
+                    auto spr = cw::WebSprite::create({ 100.0f, 50.0f });
+                    f->sprites.push_back(spr);
 
-                        spr->load(previewURL, [s, i, spr](cw::WebSprite::LoadResult res) {
-                            if (res.isOk()) s->onImageDownloadFinish(i, spr);
-                        });
-                    };
+                    spr->load(previewURL, [this, i, spr](cw::WebSprite::LoadResult res) {
+                        if (res.isOk()) {
+                            onImageDownloadFinish(i, spr);
+                        } else {
+                            log::debug("Failed to load preview image {}: {}", i, res.unwrapErr());
+                        };
+                    });
                 };
-            }); });
+            });
+        });
     }
 
-    void getRepoData(ZStringView url, CopyableFunction<void(Result<RepoData>)>&& callback) {
+    void getRepoData(ZStringView url, Function<void(Result<RepoData>)>&& callback) {
         auto split = utils::string::split(url, "://");
         if (split.size() < 2) {
             callback(Err("Invalid HTTPS URL"));
@@ -229,11 +265,13 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         auto req = cw::request::base();
 
         auto fullBaseURL = fmt::format("https://{}/api/v1/version", platformURL);
+#ifdef CW_TESTING
         log::trace("Sending request to {} to check Git instance version", fullBaseURL);
+#endif
 
-        async::spawn(
+        m_fields->urlTask.spawn(
             req.get(fullBaseURL),
-            [self = WeakRef(this), platformURL, repo, fullBaseURL, callback = std::move(callback)](web::WebResponse res) {
+            [platformURL = std::move(platformURL), repo = std::move(repo), fullBaseURL = std::move(fullBaseURL), callback = std::move(callback)](web::WebResponse res) mutable {
                 if (!res.ok()) return callback(Err(fmt::format("Failed to get response from {}: {}", fullBaseURL, res.errorMessage())));
 
                 auto jsonRes = res.json();
@@ -245,13 +283,16 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                 if (versionRes.isErr()) return callback(Err(fmt::format("Failed to get version from {}: {}", fullBaseURL, jsonRes.unwrapErr())));
 
                 auto version = std::move(versionRes).unwrap();
+
+#ifdef CW_TESTING
                 log::trace("Git instance version: {}", version);
+#endif
 
                 if (utils::string::contains(version, "+gitea-")) {
                     auto raw = fmt::format("https://{}/{}/raw/branch", platformURL, repo);
                     log::info("Detected Forgejo instance at {}, using {}", platformURL, raw);
 
-                    main::forgejo().insert(platformURL);
+                    main::forgejo().insert(std::move(platformURL));
 
                     return callback(
                         Ok(
@@ -270,18 +311,20 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void resizeForBanner(CCNode* banner) {
         auto f = m_fields.self();
+        dbgFields("resizeForBanner");
 
         auto description = getChildByIDRecursive("description-container");
         resizeDescription(description);
 
-        f->imagesContainer->setPositionY(30);
+        f->imagesContainer->setPositionY(30.0f);
     }
 
     void resizeDescription(CCNode* description) {
         auto f = m_fields.self();
+        dbgFields("resizeDescription");
 
-        float offset = 0;
-        float gap = 0;
+        auto offset = 0.0f;
+        auto gap = 0.0f;
 
         if (f->isShowingABanner) {
             gap = 10;
@@ -311,25 +354,26 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void listenForDescription(float dt) {
         auto f = m_fields.self();
+        dbgFields("listenForDescription");
 
-        auto description = getChildByIDRecursive("description-container");
+        if (auto description = getChildByIDRecursive("description-container")) {
+            if (!f->isShowingDescription && description) {
+                f->imagesContainer->setVisible(true);
+                resizeDescription(description);
 
-        if (!f->isShowingDescription && description) {
-            f->imagesContainer->setVisible(true);
-            resizeDescription(description);
+                f->isShowingDescription = true;
+            };
 
-            f->isShowingDescription = true;
-        };
-
-        if (f->isShowingDescription && !description) {
-            f->imagesContainer->setVisible(false);
-
-            f->isShowingDescription = false;
+            if (f->isShowingDescription && !description) {
+                f->imagesContainer->setVisible(false);
+                f->isShowingDescription = false;
+            };
         };
     }
 
     void listenForBanner(float dt) {
         auto f = m_fields.self();
+        dbgFields("listenForBanner");
 
         if (auto modtoberBanner = getChildByIDRecursive("modtober-banner")) {
             f->isShowingABanner = true;
@@ -349,22 +393,37 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         return spr;
     }
 
-    void showImages() {
+    bool showImages() {
+        auto f = m_fields.self();
+        dbgFields("showImages");
+
         if (auto self = reinterpret_cast<FLAlertLayer*>(this)) {
             auto firstNodeOpt = alpha::utils::cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
-            if (!firstNodeOpt.has_value()) return;
+            if (!firstNodeOpt.has_value() || !firstNodeOpt.value()) {
+                log::error("Mod popup main container node unavailable");
+                return false;
+            };
+
+            if (!f->imagesContainer) {
+                log::error("Unable to show mod previews: preview container is null");
+                return false;
+            };
 
             auto firstNode = firstNodeOpt.value();
-
-            firstNode->addChild(m_fields->imagesContainer);
+            firstNode->addChild(f->imagesContainer);
 
             schedule(schedule_selector(PreviewsModPopup::listenForDescription));
             schedule(schedule_selector(PreviewsModPopup::listenForBanner));
+
+            return true;
         };
+
+        return false;
     }
 
     void showPopup(uint8_t page) {
         auto f = m_fields.self();
+        dbgFields("showPopup");
 
         auto popup = PreviewPopup::create(page, f->previewSprites.size(), f->url);
         popup->show();
@@ -372,6 +431,9 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void onImageDownloadFinish(uint8_t id, cw::WebSprite* spr) {
         auto f = m_fields.self();
+        dbgFields("onImageDownloadFinish");
+
+        f->previewSprites[id] = spr;
 
         auto scale = 54.0f / spr->getContentHeight();
         spr->setScale(scale);
@@ -379,16 +441,25 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         auto btn = Button::createWithNode(spr, [this, id](auto) { showPopup(id); });
         btn->ignoreAnchorPointForPosition(true);
         btn->setScaleMultiplier(1.1f);
-
-        f->previewSprites[id] = spr;
         f->previewButtons[id] = btn;
 
         if (!f->hasShownImages) {
-            showImages();
+            auto shown = showImages();
             f->hasShownImages = true;
+
+            if (!shown) return;
         };
 
         btn->setID(fmt::format("preview-{}", id));
+
+        if (!f->imagesList) {
+            if (!f->hasShownImages) {
+                log::error("Unable to arrange mod previews: preview list is null");
+                f->hasShownImages = true;
+            };
+
+            return;
+        };
 
         f->imagesList->removeAllChildren();
 
@@ -420,5 +491,15 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         f->imagesList->setContentWidth(totalWidth);
 
         if (f->showAllMenu->isVisible()) f->imagesList->setPositionX((f->imagesContainer->getContentWidth() - f->showAllMenu->getContentWidth()) / 2);
+    }
+
+    void dbgFields(ZStringView func) {
+#ifdef CW_TESTING
+        auto f = m_fields.self();
+        log::debug("{} fields: {}", func, (void*)f);
+        log::trace("imagesContainer: {}", f->imagesContainer);
+        log::trace("imagesList: {}", f->imagesList);
+        log::trace("showAllMenu: {}", f->showAllMenu);
+#endif
     }
 };

@@ -110,7 +110,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void modify() {
         auto f = m_fields.self();
-        log::debug("{} fields: {}", "first modify!!!", (void*)f);
 
         if (!isSafe()) return;
 
@@ -165,16 +164,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
         f->imagesContainer->addChild(background);
 
-        dbgFields("modify");
-
-#ifdef CW_TESTING
-        log::debug(
-            "Initialized preview UI for popup {} with fields {} (container {})",
-            fmt::ptr(this),
-            fmt::ptr(f),
-            f->imagesContainer ? "set" : "null"
-        );
-#endif
+        dbgFields();
 
         auto url = static_cast<CCString*>(githubBtn->getUserObject("url"));
 
@@ -216,7 +206,9 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                         if (res.isOk()) {
                             onImageDownloadFinish(i, spr);
                         } else {
-                            log::debug("Failed to load preview image {}: {}", i, res.unwrapErr());
+#ifdef CW_TESTING
+                            log::trace("Failed to load preview image {}: {}", i, res.unwrapErr());
+#endif
                         };
                     });
                 };
@@ -493,7 +485,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         if (f->showAllMenu->isVisible()) f->imagesList->setPositionX((f->imagesContainer->getContentWidth() - f->showAllMenu->getContentWidth()) / 2);
     }
 
-    void dbgFields(ZStringView func) {
+    void dbgFields(ZStringView func = "modify") {
 #ifdef CW_TESTING
         auto f = m_fields.self();
         log::debug("{} fields: {}", func, (void*)f);

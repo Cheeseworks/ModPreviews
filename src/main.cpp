@@ -61,7 +61,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                 auto firstNodeOpt = alpha::utils::cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
                 if (!firstNodeOpt.has_value()) return false;
 
-                if (auto url = static_cast<CCString*>(githubBtn->getUserObject("url"))) {
+                if (auto url = typeinfo_cast<CCString*>(githubBtn->getUserObject("url"))) {
                     std::string githubURL = url->getCString();
                     if (githubURL.empty()) return false;
                 } else {
@@ -298,32 +298,36 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
     }
 
     void resizeForBanner(CCNode* banner) {
-        auto f = m_fields.self();
-
-        auto description = getChildByIDRecursive("description-container");
-        resizeDescription(description);
-
-        f->imagesContainer->setPositionY(30.0f);
+        resizeDescription(getChildByIDRecursive("description-container"));
+        m_fields->imagesContainer->setPositionY(30.0f);
     }
 
     void resizeDescription(CCNode* description) {
-        auto f = m_fields.self();
-
         auto offset = 0.0f;
         auto gap = 0.0f;
 
-        if (f->isShowingABanner) {
-            gap = 10;
-            offset = 25 + gap;
+        if (m_fields->isShowingABanner) {
+            gap = 10.0f;
+            offset = 25.0f + gap;
         };
 
         description->setContentHeight(192.0f - offset);
-        description->setPositionY(67.0f + offset - gap / 2);
+        description->setPositionY(67.0f + offset - gap / 2.0f);
 
-        if (auto textArea = static_cast<MDTextArea*>(description->getChildByID("textarea"))) {
+        if (auto textArea = typeinfo_cast<MDTextArea*>(description->getChildByID("textarea"))) {
             textArea->setContentHeight(description->getContentHeight());
-            textArea->setAnchorPoint({ 0.5f, 0.0f });
-            textArea->setPositionY(0.0f);
+            textArea->setAnchorPoint({ 0.5f, 1.0f });
+            textArea->setPositionY(description->getContentHeight());
+
+            textArea->getScrollLayer()->setContentHeight(description->getContentHeight());
+            textArea->getScrollLayer()->scrollToTop();
+
+            if (auto bg = textArea->getChildByType<NineSlice>()) bg->setContentHeight(description->getContentHeight());
+
+            textArea->updateLayout();
+
+            description->setPositionY(description->getParent()->getContentHeight() - 30.0f);
+            description->setAnchorPoint({ 0.5f, 1.0f });
         };
     }
 

@@ -336,7 +336,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
         if (!f->isShowingDescription && description) {
             f->imagesContainer->setVisible(true);
-
             resizeDescription(description);
 
             f->isShowingDescription = true;

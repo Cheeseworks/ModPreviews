@@ -69,7 +69,7 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                     return false;
                 };
 
-                //check if sprites exist ig
+                // check if sprites exist ig
                 if (!CCSprite::createWithSpriteFrameName("edit_addCBtn_001.png")) return false;
 
                 CW_IS_GEODE_THEME(auto geodeTheme);

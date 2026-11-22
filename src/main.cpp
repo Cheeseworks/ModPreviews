@@ -38,8 +38,8 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         Ref<CCNode> imagesContainer = nullptr;
         std::vector<Ref<cw::WebSprite>> sprites;
 
-        Ref<CCNode> imagesList = nullptr;
-        Ref<CCNode> showAllMenu = nullptr;
+        CCNode* imagesList = nullptr;
+        CCNode* showAllMenu = nullptr;
 
         bool hasShownImages = false;
         bool isShowingDescription = false;
@@ -96,7 +96,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void checkIfMain(ZStringView url, CopyableFunction<void(bool)>&& callback) {
         auto f = m_fields.self();
-        dbgFields("checkIfMain");
 
         auto req = cw::request::base();
 
@@ -164,8 +163,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
         f->imagesContainer->addChild(background);
 
-        dbgFields();
-
         auto url = static_cast<CCString*>(githubBtn->getUserObject("url"));
 
         std::string sourceURL = url->getCString();
@@ -192,7 +189,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
                 if (!main) mainBranch = "master";
 
                 auto f = m_fields.self();
-                dbgFields("modify -> checkIfMain callback");
 
                 f->url = fmt::format("{}/{}/previews/preview-", data.rawURL, mainBranch);
 
@@ -303,7 +299,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void resizeForBanner(CCNode* banner) {
         auto f = m_fields.self();
-        dbgFields("resizeForBanner");
 
         auto description = getChildByIDRecursive("description-container");
         resizeDescription(description);
@@ -313,7 +308,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void resizeDescription(CCNode* description) {
         auto f = m_fields.self();
-        dbgFields("resizeDescription");
 
         auto offset = 0.0f;
         auto gap = 0.0f;
@@ -323,30 +317,18 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
             offset = 25 + gap;
         };
 
-        description->setContentHeight(192 - offset);
-        description->setPositionY(67 + offset - gap / 2);
+        description->setContentHeight(192.0f - offset);
+        description->setPositionY(67.0f + offset - gap / 2);
 
         if (auto textArea = static_cast<MDTextArea*>(description->getChildByID("textarea"))) {
             textArea->setContentHeight(description->getContentHeight());
-            textArea->setAnchorPoint({ 0.5, 0 });
-            textArea->setPositionY(0);
-
-            if (auto background = textArea->getChildByType<NineSlice*>(0)) {
-                background->setContentHeight(description->getContentHeight() / background->getScale());
-                background->setAnchorPoint({ 0.5, 0 });
-                background->setPositionY(0);
-            };
-
-            if (auto scrollLayer = textArea->getChildByType<ScrollLayer*>(0)) {
-                scrollLayer->setContentHeight(description->getContentHeight());
-                scrollLayer->scrollToTop();
-            };
+            textArea->setAnchorPoint({ 0.5f, 0.0f });
+            textArea->setPositionY(0.0f);
         };
     }
 
     void listenForDescription(float dt) {
         auto f = m_fields.self();
-        dbgFields("listenForDescription");
 
         if (auto description = getChildByIDRecursive("description-container")) {
             if (!f->isShowingDescription && description) {
@@ -365,7 +347,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void listenForBanner(float dt) {
         auto f = m_fields.self();
-        dbgFields("listenForBanner");
 
         if (auto modtoberBanner = getChildByIDRecursive("modtober-banner")) {
             f->isShowingABanner = true;
@@ -387,7 +368,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     bool showImages() {
         auto f = m_fields.self();
-        dbgFields("showImages");
 
         if (auto self = reinterpret_cast<FLAlertLayer*>(this)) {
             auto firstNodeOpt = alpha::utils::cocos::getChildByClassName(self->m_mainLayer, "cocos2d::CCNode", 0);
@@ -415,7 +395,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void showPopup(uint8_t page) {
         auto f = m_fields.self();
-        dbgFields("showPopup");
 
         auto popup = PreviewPopup::create(page, f->previewSprites.size(), f->url);
         popup->show();
@@ -423,7 +402,6 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
 
     void onImageDownloadFinish(uint8_t id, cw::WebSprite* spr) {
         auto f = m_fields.self();
-        dbgFields("onImageDownloadFinish");
 
         f->previewSprites[id] = spr;
 
@@ -483,15 +461,5 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
         f->imagesList->setContentWidth(totalWidth);
 
         if (f->showAllMenu->isVisible()) f->imagesList->setPositionX((f->imagesContainer->getContentWidth() - f->showAllMenu->getContentWidth()) / 2);
-    }
-
-    void dbgFields(ZStringView func = "modify") {
-#ifdef CW_TESTING
-        auto f = m_fields.self();
-        log::debug("{} fields: {}", func, (void*)f);
-        log::trace("imagesContainer: {}", f->imagesContainer);
-        log::trace("imagesList: {}", f->imagesList);
-        log::trace("showAllMenu: {}", f->showAllMenu);
-#endif
     }
 };

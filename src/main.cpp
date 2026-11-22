@@ -303,18 +303,19 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
     }
 
     void resizeDescription(CCNode* description) {
-        auto offset = 0.0f;
-        auto gap = 0.0f;
+#ifdef CW_TESTING
+        log::debug("Resizing description container...");
+#endif
 
-        if (m_fields->isShowingABanner) {
-            gap = 10.0f;
-            offset = 25.0f + gap;
-        };
-
-        description->setContentHeight(192.0f - offset);
-        description->setPositionY(67.0f + offset - gap / 2.0f);
+        description->setContentHeight(192.0f);
+        description->setPositionY(description->getParent()->getContentHeight() - 30.0f);
+        description->setAnchorPoint({ 0.5f, 1.0f });
 
         if (auto textArea = typeinfo_cast<MDTextArea*>(description->getChildByID("textarea"))) {
+#ifdef CW_TESTING
+            log::trace("Inner text area found");
+#endif
+
             textArea->setContentHeight(description->getContentHeight());
             textArea->setAnchorPoint({ 0.5f, 1.0f });
             textArea->setPositionY(description->getContentHeight());
@@ -325,27 +326,25 @@ class $nodeModify(PreviewsModPopup, ModPopup) {
             if (auto bg = textArea->getChildByType<NineSlice>()) bg->setContentHeight(description->getContentHeight());
 
             textArea->updateLayout();
-
-            description->setPositionY(description->getParent()->getContentHeight() - 30.0f);
-            description->setAnchorPoint({ 0.5f, 1.0f });
         };
     }
 
     void listenForDescription(float dt) {
         auto f = m_fields.self();
 
-        if (auto description = getChildByIDRecursive("description-container")) {
-            if (!f->isShowingDescription && description) {
-                f->imagesContainer->setVisible(true);
-                resizeDescription(description);
+        auto description = getChildByIDRecursive("description-container");
 
-                f->isShowingDescription = true;
-            };
+        if (!f->isShowingDescription && description) {
+            f->imagesContainer->setVisible(true);
 
-            if (f->isShowingDescription && !description) {
-                f->imagesContainer->setVisible(false);
-                f->isShowingDescription = false;
-            };
+            resizeDescription(description);
+
+            f->isShowingDescription = true;
+        }
+
+        if (f->isShowingDescription && !description) {
+            f->imagesContainer->setVisible(false);
+            f->isShowingDescription = false;
         };
     }
 
